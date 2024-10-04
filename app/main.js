@@ -1,4 +1,5 @@
 const dgram = require("dgram");
+const { builtinModules } = require("module");
 
 function createDNSHeader(buff) {
   const header = Buffer.alloc(12); // DNS header is 12 bytes
@@ -33,15 +34,44 @@ function createDNSHeader(buff) {
   return header;
 }
 
-function createQuestionSection() {
+function getDomainName(buff){
+  let index = 12
+  let domain = ""
+  while(true){
+  const length = buff.readInt8BE(index)
+  if(length==0) break;
+    domain += buff.toString("utf-8",index,index+length) + "."
+    index += length
+  }
+  domain = domain.slice(0,-1)
+  return domain
+}
+
+function getEncodedName(domain){
+  const domainName = domain 
+  let labelParts = domainName.split(".")
+  let newName = []
+  labelParts.forEach(item=>{
+    newName.push(Buffer.from(item.length))
+    newName.push(Buffer.from(item))
+  })
+
+  labelParts.push(Buffer.from(0x00))
+
+  return labelParts
+}
+
+function createQuestionSection(buff) {
   // Encode the domain name codecrafters.io
-  const name = Buffer.from([
-    0x0c, // Length of "codecrafters" (12 bytes)
-    0x63, 0x6f, 0x64, 0x65, 0x63, 0x72, 0x61, 0x66, 0x74, 0x65, 0x72, 0x73, // "codecrafters"
-    0x02, // Length of "io" (2 bytes)
-    0x69, 0x6f, // "io"
-    0x00, // Null byte to terminate the domain name
-  ]);
+  
+
+  // const name = Buffer.from([
+  //   0x0c, // Length of "codecrafters" (12 bytes)
+  //   0x63, 0x6f, 0x64, 0x65, 0x63, 0x72, 0x61, 0x66, 0x74, 0x65, 0x72, 0x73, // "codecrafters"
+  //   0x02, // Length of "io" (2 bytes)
+  //   0x69, 0x6f, // "io"
+  //   0x00, // Null byte to terminate the domain name
+  // ]);
 
   // Type (A record) - 2 bytes, big-endian
   const type = Buffer.alloc(2);
@@ -52,19 +82,15 @@ function createQuestionSection() {
   classField.writeUInt16BE(1, 0); // 1 corresponds to IN (Internet class)
 
   // Concatenate all parts
+  const domain = getDomainName(buff)
+  const name = getEncodedName(domain)
   return Buffer.concat([name, type, classField]);
 }
 
-function createAnswerSection(){
+function createAnswerSection(buff){
 
-  // Encode the domain name codecrafters.io (same as in the question section)
-  const name = Buffer.from([
-    0x0c, // Length of "codecrafters" (12 bytes)
-    0x63, 0x6f, 0x64, 0x65, 0x63, 0x72, 0x61, 0x66, 0x74, 0x65, 0x72, 0x73, // "codecrafters"
-    0x02, // Length of "io" (2 bytes)
-    0x69, 0x6f, // "io"
-    0x00, // Null byte to terminate the domain name
-  ]);
+  const domain = getDomainName(buff)
+  const name = getEncodedName(domain)
 
   // Type (A record) - 2 bytes, big-endian
   const type = Buffer.alloc(2);
@@ -94,9 +120,10 @@ udpSocket.bind(2053, "127.0.0.1");
 
 udpSocket.on("message", (buf, rinfo) => {
   try {
+    console.log(buf.readInt16BE(13).toString())
     const header = createDNSHeader(buf)
-    const question = createQuestionSection()
-    const answers = createAnswerSection()
+    const question = createQuestionSection(buf)
+    const answers = createAnswerSection(buf)
     const response = Buffer.concat([header,question,answers])
     udpSocket.send(response, rinfo.port, rinfo.address);
   } catch (e) {
