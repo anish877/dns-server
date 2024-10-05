@@ -38,7 +38,7 @@ function getDomainName(buff){
   let index = 12
   let domain = ""
   while(true){
-  const length = buff.readUInt8BE(index)
+  const length = buff.readUInt8(index)
   if(length==0) break;
     domain += buff.toString("utf-8",index,index+length) + "."
     index += length
