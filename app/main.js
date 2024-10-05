@@ -38,7 +38,7 @@ function getDomainName(buff){
   let index = 12
   let domain = ""
   while(true){
-  const length = buff.readInt16BE(index)
+  const length = buff.readUInt8BE(index)
   if(length==0) break;
     domain += buff.toString("utf-8",index,index+length) + "."
     index += length
@@ -47,18 +47,21 @@ function getDomainName(buff){
   return domain
 }
 
-function getEncodedName(domain){
-  const domainName = domain 
-  let labelParts = domainName.split(".")
-  let newName = []
-  labelParts.forEach(item=>{
-    newName.push(Buffer.from(item.length))
-    newName.push(Buffer.from(item))
-  })
+function getEncodedName(domain) {
+  const domainParts = domain.split(".");
+  const encodedParts = [];
 
-  labelParts.push(Buffer.from(0x00))
+  domainParts.forEach((part) => {
+    const lengthBuffer = Buffer.alloc(1); // Length of each part
+    lengthBuffer.writeUInt8(part.length, 0); // Write the length as a single byte
+    const nameBuffer = Buffer.from(part, "utf-8"); // Write the part itself
+    encodedParts.push(lengthBuffer, nameBuffer);
+  });
 
-  return labelParts
+  // Push the final null byte
+  encodedParts.push(Buffer.from([0x00]));
+
+  return Buffer.concat(encodedParts); // Return the concatenated buffer
 }
 
 function createQuestionSection(buff) {
@@ -120,7 +123,6 @@ udpSocket.bind(2053, "127.0.0.1");
 
 udpSocket.on("message", (buf, rinfo) => {
   try {
-    console.log(buf.readInt16BE(13).toString())
     const header = createDNSHeader(buf)
     const question = createQuestionSection(buf)
     const answers = createAnswerSection(buf)
