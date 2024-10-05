@@ -34,17 +34,33 @@ function createDNSHeader(buff) {
   return header;
 }
 
-function getDomainName(buff){
-  let index = 12
-  let domain = ""
-  while(true){
-  const length = buff.readUInt8(index)
-  if(length==0) break;
-    domain += buff.toString("utf-8",index,index+length) + "."
-    index += length
+function getDomainName(buff) {
+  let index = 12; // DNS queries start at offset 12
+  let domain = "";
+
+  // Loop through domain name labels
+  while (true) {
+    if (index >= buff.length) { // Check if index is out of buffer range
+      throw new Error("Index out of bounds while parsing domain name");
+    }
+
+    const length = buff.readUInt8(index); // Read the length of the label
+
+    if (length === 0) break; // Null byte indicates the end of the domain name
+
+    // Check if length is valid and within buffer bounds
+    if (index + length + 1 > buff.length) {
+      throw new Error("Invalid domain name length in buffer");
+    }
+
+    // Read the domain label and append to domain string
+    domain += buff.toString("utf-8", index + 1, index + 1 + length) + ".";
+
+    // Move to the next label (length + 1 for the length byte itself)
+    index += length + 1;
   }
-  domain = domain.slice(0,-1)
-  return domain
+
+  return domain.slice(0, -1); // Remove the trailing dot
 }
 
 function getEncodedName(domain) {
