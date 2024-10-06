@@ -15,7 +15,7 @@ function createDNSHeader(buff) {
   const rd = buff.readUInt16BE(2) & 0x0100; // Extract RD bit
   const rcode = (opcode === 0) ? 0 : 4; // Set RCODE based on OPCODE
 
-  // QR = 1 (response), AA = 0, TC = 0, RA = 0
+  // QR = 1 (response), AA = 0, TC = 0, RA = 0QD
   const flags = 0x8000 | opcode | rd | rcode; // Construct flags with RD included
   header.writeUInt16BE(flags, 2);
 
@@ -34,33 +34,44 @@ function createDNSHeader(buff) {
   return header;
 }
 
-function getDomainName(buff) {
-  let index = 12; // DNS queries start at offset 12
+function getDomainName(buff,offset = 12) {
   let domain = "";
+  let jumped = false;
+  let jumpOffset = -1
 
   // Loop through domain name labels
   while (true) {
-    if (index >= buff.length) { // Check if index is out of buffer range
-      throw new Error("Index out of bounds while parsing domain name");
+    const length = buff.readUInt8(offset);
+    // Check for pointer (compression)
+    if ((length & 0xC0) === 0xC0) { // First two bits are 11 (indicating a pointer)
+      if (!jumped) {
+        jumpOffset = offset + 2; // Save where to jump back to after pointer
+      }
+      const pointer = buff.readUInt16BE(offset) & 0x3FFF; // Mask first 2 bits, get pointer
+      offset = pointer; // Jump to pointer location
+      jumped = true;
+      continue; // Continue parsing at the new offset
     }
-
-    const length = buff.readUInt8(index); // Read the length of the label
+      if (offset >= buff.length) { // Check if offset is out of buffer range
+        throw new Error("offset out of bounds while parsing domain name");
+      }
 
     if (length === 0) break; // Null byte indicates the end of the domain name
 
     // Check if length is valid and within buffer bounds
-    if (index + length + 1 > buff.length) {
+    if (offset + length + 1 > buff.length) {
       throw new Error("Invalid domain name length in buffer");
     }
 
-    // Read the domain label and append to domain string
-    domain += buff.toString("utf-8", index + 1, index + 1 + length) + ".";
-
-    // Move to the next label (length + 1 for the length byte itself)
-    index += length + 1;
+    domain += buff.toString("utf-8", offset + 1, offset + 1 + length) + ".";
+    offset += length + 1;
+  }
+  
+  if (jumped && jumpOffset !== -1) {
+    offset = jumpOffset; // If jumped, restore the original offset
   }
 
-  return domain.slice(0, -1); // Remove the trailing dot
+  return { domain: domain.slice(0, -1), newOffset: offset + 1 };
 }
 
 function getEncodedName(domain) {
@@ -80,7 +91,7 @@ function getEncodedName(domain) {
   return Buffer.concat(encodedParts); // Return the concatenated buffer
 }
 
-function createQuestionSection(buff) {
+function createQuestionSection(domain) {
   // Encode the domain name codecrafters.io
   
 
@@ -101,14 +112,12 @@ function createQuestionSection(buff) {
   classField.writeUInt16BE(1, 0); // 1 corresponds to IN (Internet class)
 
   // Concatenate all parts
-  const domain = getDomainName(buff)
   const name = getEncodedName(domain)
   return Buffer.concat([name, type, classField]);
 }
 
-function createAnswerSection(buff){
+function createAnswerSection(domain){
 
-  const domain = getDomainName(buff)
   const name = getEncodedName(domain)
 
   // Type (A record) - 2 bytes, big-endian
@@ -140,9 +149,24 @@ udpSocket.bind(2053, "127.0.0.1");
 udpSocket.on("message", (buf, rinfo) => {
   try {
     const header = createDNSHeader(buf)
-    const question = createQuestionSection(buf)
-    const answers = createAnswerSection(buf)
-    const response = Buffer.concat([header,question,answers])
+    let offset = 12; // DNS header ends at byte 12
+    const questionCount = buf.readUInt16BE(4); // QDCOUNT
+
+    let questions = [];
+    for (let i = 0; i < questionCount; i++) {
+      const question = getDomainName(buf, offset);
+      questions.push(question.domain);
+      offset = question.newOffset; // Update offset after reading each question
+    }
+    const questionSection = Buffer.concat(
+      questions.map(domain => createQuestionSection(domain))
+    );
+
+    const answerSection = Buffer.concat(
+      questions.map(domain => createAnswerSection(domain))
+    );
+
+    const response = Buffer.concat([header, questionSection, answerSection]);
     udpSocket.send(response, rinfo.port, rinfo.address);
   } catch (e) {
     console.log(`Error receiving data: ${e}`);
