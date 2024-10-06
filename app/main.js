@@ -139,6 +139,7 @@ let resolverAdress = null
 if(resolverArgIndex !== -1 && process.argv.length > resolverArgIndex + 1)
 {
   resolverAdress = process.argv[resolverArgIndex + 1]
+  console.log(resolverAdress)
 }else {
   console.log("No resolver address provided. Use --resolver <address>");
   process.exit(1);
