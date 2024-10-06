@@ -158,6 +158,7 @@ udpSocket.on("message", (buf, rinfo) => {
       questions.push(question.domain);
       offset = question.newOffset; // Update offset after reading each question
     }
+    console.log(questions)
     const questionSection = Buffer.concat(
       questions.map(domain => createQuestionSection(domain))
     );
