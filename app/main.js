@@ -211,7 +211,6 @@ function handleResolverResponse(buf,clientInfo){
 
 udpSocket.on("message", (buf, rinfo) => {
   try {
-    // Parse the DNS header and question section
     const header = createDNSHeader(buf);
     let offset = 12; // DNS header ends at byte 12
     const questionCount = buf.readUInt16BE(4); // QDCOUNT
@@ -219,15 +218,20 @@ udpSocket.on("message", (buf, rinfo) => {
     let questions = [];
     for (let i = 0; i < questionCount; i++) {
       const question = getDomainName(buf, offset);
-      console.log(question);
       questions.push(question.domain);
       offset = question.newOffset + 4; // Update offset after reading each question
     }
-    console.log(questions);
 
-    // Forward the query to the resolver
-    queryToResolver(buf, resolverIPAdress, resolverPort, rinfo);
+    const questionSection = Buffer.concat(
+      questions.map(domain => createQuestionSection(domain))
+    );
 
+    const answerSection = Buffer.concat(
+      questions.map(domain => createAnswerSection(domain))
+    );
+
+    const response = Buffer.concat([header, questionSection, answerSection]);
+    udpSocket.send(response, rinfo.port, rinfo.address); // Send response using udpSocket
   } catch (e) {
     console.log(`Error receiving data: ${e}`);
   }
