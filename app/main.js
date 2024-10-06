@@ -134,8 +134,8 @@ function createAnswerSection(domain){
   return Buffer.concat([name, type, classField, ttl, rdlength, rdata]);
 }
 
-const resolverArgIndex = process.argv.indexOf("--resolver");
-const resolverAdress = null
+let resolverArgIndex = process.argv.indexOf("--resolver");
+let resolverAdress = null
 if(resolverArgIndex !== -1 && process.argv.length > resolverArgIndex + 1)
 {
   resolverAdress = process.argv[resolverArgIndex + 1]
