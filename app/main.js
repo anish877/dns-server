@@ -155,6 +155,7 @@ udpSocket.on("message", (buf, rinfo) => {
     let questions = [];
     for (let i = 0; i < questionCount; i++) {
       const question = getDomainName(buf, offset);
+      console.log(question)
       questions.push(question.domain);
       offset = question.newOffset; // Update offset after reading each question
     }
