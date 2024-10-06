@@ -149,16 +149,20 @@ const [resolverIPAdress,resolverPort] = resolverAdress.split(":")
 const udpSocket = dgram.createSocket("udp4");
 udpSocket.bind(2053, "127.0.0.1");
 
-function queryToResolver(buff,resolverIPAdress,resolverPort,clientInfo)
+function queryToResolver(queryBuffer, resolverIP, resolverPort, clientInfo)
 {
-  const resolverSocket = dgram.createSocket("udp4")
-  resolverSocket.send(buff,resolverPort,resolverIPAdress,(err) => {
+  // Define resolverSocket inside this function
+  const resolverSocket = dgram.createSocket("udp4");
+
+  // Send the query to the resolver (e.g., Google DNS at 8.8.8.8)
+  resolverSocket.send(queryBuffer, resolverPort, resolverIP, (err) => {
     if (err) {
       console.error("Error forwarding query to resolver:", err);
     }
-  })
- 
-  resolverSocket.on("message", (resolverResponse)=>{
+  });
+
+  // Listen for the response from the resolver
+  resolverSocket.on("message", (resolverResponse) => {
     console.log("Received response from resolver");
 
     // Send the response back to the client
@@ -166,7 +170,11 @@ function queryToResolver(buff,resolverIPAdress,resolverPort,clientInfo)
 
     // Close resolver socket after forwarding
     resolverSocket.close();
-  })
+  });
+
+  resolverSocket.on("error", (err) => {
+    console.error(`Resolver socket error: ${err}`);
+  });
 }
 
 function handleResolverResponse(buf,clientInfo){
