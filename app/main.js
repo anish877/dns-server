@@ -70,7 +70,7 @@ function getDomainName(buff,offset = 12) {
   if (jumped && jumpOffset !== -1) {
     offset = jumpOffset; // If jumped, restore the original offset
   }
-
+  console.log(domain)
   return { domain: domain.slice(0, -1), newOffset: offset + 1 };
 }
 
@@ -93,15 +93,6 @@ function getEncodedName(domain) {
 
 function createQuestionSection(domain) {
   // Encode the domain name codecrafters.io
-  
-
-  // const name = Buffer.from([
-  //   0x0c, // Length of "codecrafters" (12 bytes)
-  //   0x63, 0x6f, 0x64, 0x65, 0x63, 0x72, 0x61, 0x66, 0x74, 0x65, 0x72, 0x73, // "codecrafters"
-  //   0x02, // Length of "io" (2 bytes)
-  //   0x69, 0x6f, // "io"
-  //   0x00, // Null byte to terminate the domain name
-  // ]);
 
   // Type (A record) - 2 bytes, big-endian
   const type = Buffer.alloc(2);
