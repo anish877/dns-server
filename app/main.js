@@ -153,7 +153,7 @@ function queryToResolver(queryBuffer, resolverIP, resolverPort, clientInfo)
 {
   // Define resolverSocket inside this function
   const resolverSocket = dgram.createSocket("udp4");
-  resolverSocket.bind(resolverPort, resolverIP);
+
   // Send the query to the resolver (e.g., Google DNS at 8.8.8.8)
   resolverSocket.send(queryBuffer, resolverPort, resolverIP, (err) => {
     if (err) {
