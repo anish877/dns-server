@@ -239,7 +239,7 @@ udpSocket.on("message", (buf, rinfo) => {
 
 resolverSocket.on("message", (buf,rinfo)=>{
   try {
-    queryToResolver(buf,resolverIPAdress,resolverPort,rinfo)
+    queryToResolver(buf,"8.8.8.8",53,rinfo)
     // const header = createDNSHeader(buf)
     // let offset = 12; // DNS header ends at byte 12
     // const questionCount = buf.readUInt16BE(4); // QDCOUNT
