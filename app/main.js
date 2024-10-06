@@ -20,10 +20,10 @@ function createDNSHeader(buff) {
   header.writeUInt16BE(flags, 2);
 
   // QDCOUNT (number of questions) - 16 bits: Set to 0 for this stage
-  header.writeUInt16BE(2, 4);
+  header.writeUInt16BE(buf.readUInt16BE(4), 4);
 
   // ANCOUNT (number of answers) - 16 bits: Set to 0 for this stage
-  header.writeUInt16BE(2, 6);
+  header.writeUInt16BE(buf.readUInt16BE(4), 6);
 
   // NSCOUNT (number of authority records) - 16 bits: Set to 0
   header.writeUInt16BE(0, 8);
