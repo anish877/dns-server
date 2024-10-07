@@ -312,7 +312,6 @@ async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort, cli
     let offset = 12; // DNS header ends at byte 12
     const questionCount = queryBuffer.readUInt16BE(4); // QDCOUNT
     let response
-    if(questionCount>1){
     let questions = [];
     for (let i = 0; i < questionCount; i++) {
       const question = getDomainName(queryBuffer, offset);
@@ -329,10 +328,7 @@ async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort, cli
     // );
 
     response = Buffer.concat([header, questionSection]);
-  }
-  else{
-    response = queryBuffer
-  }
+  
   // Send the query to the resolver
   resolverSocket.send(response, resolverPort, resolverIP, (err) => {
     if (err) {
