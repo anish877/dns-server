@@ -343,7 +343,10 @@ async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort, cli
     handleResolverResponse(resolverResponse, clientInfo);
 
     // Close resolver socket after forwarding
-    resolverSocket.close();
+    resolverSocket.setTimeout(5000, () => {
+      console.error("Resolver timeout");
+      resolverSocket.close(); // Close the socket if no response
+    });
   });
 }
 
