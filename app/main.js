@@ -312,58 +312,43 @@ function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort, clientInf
     let offset = 12; // DNS header ends at byte 12
     const questionCount = queryBuffer.readUInt16BE(4); // QDCOUNT
     let response
+    if(questionCount>1){
     let questions = [];
     for (let i = 0; i < questionCount; i++) {
       const question = getDomainName(queryBuffer, offset);
-      const questionSec = Buffer.concat(createQuestionSection(question.domain))
-      response = Buffer.concat([header, questionSec]);
-        // Send the query to the resolver
-      resolverSocket.send(response, resolverPort, resolverIP, (err) => {
-        if (err) {
-          console.error("Error forwarding query to resolver:", err);
-        }
-      });
-
-      // Listen for the response from the resolver
-      resolverSocket.on("message", (resolverResponse) => {
-        console.log("Received response from resolver");
-
-        // Send the response back to the client
-        handleResolverResponse(resolverResponse, clientInfo);
-
-        // Close resolver socket after forwarding
-        resolverSocket.close();
-      });
-      // questions.push(question.domain);
+      questions.push(question.domain);
       offset = question.newOffset + 4; // Update offset after reading each question
     }
-    // const questionSection = Buffer.concat(
-    //   questions.map(domain => createQuestionSection(domain))
-    // );
+    const questionSection = Buffer.concat(
+      questions.map(domain => createQuestionSection(domain))
+    );
 
     // const answerSection = Buffer.concat(
     //   questions.map(domain => createAnswerSection(domain))
     // );
 
-    // response = Buffer.concat([header, questionSection]);
-  
-  // // Send the query to the resolver
-  // resolverSocket.send(response, resolverPort, resolverIP, (err) => {
-  //   if (err) {
-  //     console.error("Error forwarding query to resolver:", err);
-  //   }
-  // });
+    response = Buffer.concat([header, questionSection]);
+  }
+  else{
+    response = queryBuffer
+  }
+  // Send the query to the resolver
+  resolverSocket.send(response, resolverPort, resolverIP, (err) => {
+    if (err) {
+      console.error("Error forwarding query to resolver:", err);
+    }
+  });
 
-  // // Listen for the response from the resolver
-  // resolverSocket.on("message", (resolverResponse) => {
-  //   console.log("Received response from resolver");
+  // Listen for the response from the resolver
+  resolverSocket.on("message", (resolverResponse) => {
+    console.log("Received response from resolver");
 
-  //   // Send the response back to the client
-  //   handleResolverResponse(resolverResponse, clientInfo);
+    // Send the response back to the client
+    handleResolverResponse(resolverResponse, clientInfo);
 
-  //   // Close resolver socket after forwarding
-  //   resolverSocket.close();
-  // });
+    // Close resolver socket after forwarding
+    resolverSocket.close();
+  });
 }
 
 function handleResolverResponse(resolverResponse, clientInfo) {
