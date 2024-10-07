@@ -308,30 +308,29 @@ udpSocket.on("message", (buf, rinfo) => {
 function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort, clientInfo) {
   const resolverSocket = dgram.createSocket("udp4");
 
-    const header = createDNSHeader(queryBuffer)
-    let offset = 12; // DNS header ends at byte 12
-    const questionCount = queryBuffer.readUInt16BE(4); // QDCOUNT
-    let response
-    if(questionCount>1){
-    let questions = [];
-    for (let i = 0; i < questionCount; i++) {
-      const question = getDomainName(queryBuffer, offset);
-      questions.push(question.domain);
-      offset = question.newOffset + 4; // Update offset after reading each question
-    }
-    const questionSection = Buffer.concat(
-      questions.map(domain => createQuestionSection(domain))
-    );
+  //   const header = createDNSHeader(queryBuffer)
+  //   let offset = 12; // DNS header ends at byte 12
+  //   const questionCount = queryBuffer.readUInt16BE(4); // QDCOUNT
+  //   let response
+  //   if(questionCount>1){
+  //   let questions = [];
+  //   for (let i = 0; i < questionCount; i++) {
+  //     const question = getDomainName(queryBuffer, offset);
+  //     questions.push(question.domain);
+  //     offset = question.newOffset + 4; // Update offset after reading each question
+  //   }
+  //   const questionSection = Buffer.concat(
+  //     questions.map(domain => createQuestionSection(domain))
+  //   );
 
-    // const answerSection = Buffer.concat(
-    //   questions.map(domain => createAnswerSection(domain))
-    // );
+  //   // const answerSection = Buffer.concat(
+  //   //   questions.map(domain => createAnswerSection(domain))
+  //   // );
 
-    response = Buffer.concat([header, questionSection]);
-  }
-  else{
+  //   response = Buffer.concat([header, questionSection]);
+  // }
+  // else{
     response = queryBuffer
-  }
   // Send the query to the resolver
   resolverSocket.send(response, resolverPort, resolverIP, (err) => {
     if (err) {
