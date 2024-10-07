@@ -317,6 +317,7 @@ function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort, clientInf
     for (let i = 0; i < questionCount; i++) {
       const question = getDomainName(queryBuffer, offset);
       questions.push(question.domain);
+      console.log(questions)
       offset = question.newOffset + 4; // Update offset after reading each question
     }
     const questionSection = Buffer.concat(
