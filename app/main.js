@@ -299,9 +299,7 @@ udpSocket.on("message", (buf, rinfo) => {
 
     // Forward query to the specified resolver
     console.log(buf.readInt16BE(4))
-    for(i=0;i<buf.readInt16BE(4);i++){
-      forwardQueryToResolver(buf, resolverIP, resolverPort, rinfo);
-    }
+    forwardQueryToResolver(buf, resolverIP, resolverPort, rinfo);
 
   } catch (e) {
     console.error(`Error processing query: ${e}`);
@@ -311,8 +309,30 @@ udpSocket.on("message", (buf, rinfo) => {
 function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort, clientInfo) {
   const resolverSocket = dgram.createSocket("udp4");
 
+    const header = createDNSHeader(queryBuffer)
+    let offset = 12; // DNS header ends at byte 12
+    const questionCount = queryBuffer.readUInt16BE(4); // QDCOUNT
+
+    let questions = [];
+    for (let i = 0; i < questionCount; i++) {
+      const question = getDomainName(queryBuffer, offset);
+      console.log(question)
+      questions.push(question.domain);
+      offset = question.newOffset + 4; // Update offset after reading each question
+    }
+    console.log(questions)
+    const questionSection = Buffer.concat(
+      questions.map(domain => createQuestionSection(domain))
+    );
+
+    // const answerSection = Buffer.concat(
+    //   questions.map(domain => createAnswerSection(domain))
+    // );
+
+    const response = Buffer.concat([header, questionSection]);
+
   // Send the query to the resolver
-  resolverSocket.send(queryBuffer, resolverPort, resolverIP, (err) => {
+  resolverSocket.send(response, resolverPort, resolverIP, (err) => {
     if (err) {
       console.error("Error forwarding query to resolver:", err);
     }
