@@ -70,7 +70,6 @@ function getDomainName(buff,offset = 12) {
   if (jumped && jumpOffset !== -1) {
     offset = jumpOffset; // If jumped, restore the original offset
   }
-  console.log(domain)
   return { domain: domain.slice(0, -1), newOffset: offset + 1 };
 }
 
@@ -312,7 +311,8 @@ function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort, clientInf
     const header = createDNSHeader(queryBuffer)
     let offset = 12; // DNS header ends at byte 12
     const questionCount = queryBuffer.readUInt16BE(4); // QDCOUNT
-
+    let response
+    if(questionCount>1){
     let questions = [];
     for (let i = 0; i < questionCount; i++) {
       const question = getDomainName(queryBuffer, offset);
@@ -328,8 +328,11 @@ function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort, clientInf
     //   questions.map(domain => createAnswerSection(domain))
     // );
 
-    const response = Buffer.concat([header, questionSection]);
-
+    response = Buffer.concat([header, questionSection]);
+  }
+  else{
+    response = queryBuffer
+  }
   // Send the query to the resolver
   resolverSocket.send(response, resolverPort, resolverIP, (err) => {
     if (err) {
