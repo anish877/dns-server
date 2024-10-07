@@ -309,6 +309,13 @@ async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort, cli
   const resolverSocket = dgram.createSocket("udp4");
 
     const header = createDNSHeader(queryBuffer)
+    console.log(queryBuffer.readInt16BE(0))
+    console.log(queryBuffer.readInt16BE(2))
+    console.log(queryBuffer.readInt16BE(4))
+    console.log(queryBuffer.readInt16BE(6))
+    console.log(queryBuffer.readInt16BE(8))
+    console.log(queryBuffer.readInt16BE(10))
+    console.log(queryBuffer.readInt16BE(12))
     let offset = 12; // DNS header ends at byte 12
     const questionCount = queryBuffer.readUInt16BE(4); // QDCOUNT
     let response
