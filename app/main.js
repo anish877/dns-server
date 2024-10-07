@@ -297,7 +297,6 @@ udpSocket.on("message", (buf, rinfo) => {
     console.log("Received query from client");
 
     // Forward query to the specified resolver
-    console.log(buf.readInt16BE(4))
     forwardQueryToResolver(buf, resolverIP, resolverPort, rinfo);
 
   } catch (e) {
@@ -309,13 +308,6 @@ async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort, cli
   const resolverSocket = dgram.createSocket("udp4");
 
     const header = createDNSHeader(queryBuffer)
-    console.log(queryBuffer.readInt16BE(0))
-    console.log(queryBuffer.readInt16BE(2))
-    console.log(queryBuffer.readInt16BE(4))
-    console.log(queryBuffer.readInt16BE(6))
-    console.log(queryBuffer.readInt16BE(8))
-    console.log(queryBuffer.readInt16BE(10))
-    console.log(queryBuffer.readInt16BE(12))
     let offset = 12; // DNS header ends at byte 12
     const questionCount = queryBuffer.readUInt16BE(4); // QDCOUNT
     let response
