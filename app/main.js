@@ -26,10 +26,10 @@ function createDNSHeader(buff) {
   header.writeUInt16BE(buff.readUInt16BE(6), 6);
 
   // NSCOUNT (number of authority records) - 16 bits: Set to 0
-  header.writeUInt16BE(0, 8);
+  header.writeUInt16BE(buff.readUInt16BE(8), 8);
 
   // ARCOUNT (number of additional records) - 16 bits: Set to 0
-  header.writeUInt16BE(0, 10);
+  header.writeUInt16BE(buff.readUInt16BE(10), 10);
 
   return header;
 }
@@ -310,19 +310,30 @@ async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort, cli
     const header = createDNSHeader(queryBuffer)
     let offset = 12; // DNS header ends at byte 12
     const questionCount = queryBuffer.readUInt16BE(4); // QDCOUNT
+    let response
     let questions = [];
     for (let i = 0; i < questionCount; i++) {
       const question = getDomainName(queryBuffer, offset);
-      var questionSection = createQuestionSection(question.domain)
-      const response = Buffer.concat([header,questionSection])
-      resolverSocket.send(response, resolverPort, resolverIP, (err) => {
-        if (err) {
-          console.error("Error forwarding query to resolver:", err);
-        }
-      });
       questions.push(question.domain);
+      console.log(questions)
       offset = question.newOffset + 4; // Update offset after reading each question
     }
+    const questionSection = Buffer.concat(
+      questions.map(domain => createQuestionSection(domain))
+    );
+
+    // const answerSection = Buffer.concat(
+    //   questions.map(domain => createAnswerSection(domain))
+    // );
+
+    response = Buffer.concat([header, questionSection]);
+  
+  // Send the query to the resolver
+  resolverSocket.send(response, resolverPort, resolverIP, (err) => {
+    if (err) {
+      console.error("Error forwarding query to resolver:", err);
+    }
+  });
 
   // Listen for the response from the resolver
   resolverSocket.on("message", (resolverResponse) => {
