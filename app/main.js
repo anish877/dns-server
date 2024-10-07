@@ -320,7 +320,6 @@ function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort, clientInf
       questions.push(question.domain);
       offset = question.newOffset + 4; // Update offset after reading each question
     }
-    console.log(questions)
     const questionSection = Buffer.concat(
       questions.map(domain => createQuestionSection(domain))
     );
