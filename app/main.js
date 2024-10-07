@@ -310,29 +310,19 @@ async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort, cli
     const header = createDNSHeader(queryBuffer)
     let offset = 12; // DNS header ends at byte 12
     const questionCount = queryBuffer.readUInt16BE(4); // QDCOUNT
-    let response
     let questions = [];
     for (let i = 0; i < questionCount; i++) {
       const question = getDomainName(queryBuffer, offset);
+      var questionSection = createQuestionSection(question.domain)
+      const response = Buffer.concat([header,questionSection])
+      resolverSocket.send(response, resolverPort, resolverIP, (err) => {
+        if (err) {
+          console.error("Error forwarding query to resolver:", err);
+        }
+      });
       questions.push(question.domain);
       offset = question.newOffset + 4; // Update offset after reading each question
     }
-    const questionSection = Buffer.concat(
-      questions.map(domain => createQuestionSection(domain))
-    );
-
-    // const answerSection = Buffer.concat(
-    //   questions.map(domain => createAnswerSection(domain))
-    // );
-
-    response = Buffer.concat([header, questionSection]);
-  
-  // Send the query to the resolver
-  resolverSocket.send(queryBuffer[0], resolverPort, resolverIP, (err) => {
-    if (err) {
-      console.error("Error forwarding query to resolver:", err);
-    }
-  });
 
   // Listen for the response from the resolver
   resolverSocket.on("message", (resolverResponse) => {
