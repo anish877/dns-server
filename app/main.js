@@ -307,7 +307,7 @@ udpSocket.on("message", (buf, rinfo) => {
 async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort, clientInfo) {
   const resolverSocket = dgram.createSocket("udp4");
 
-  // Forward the entire query to the external resolver
+  // Send the entire query (including multiple questions) to the external resolver
   resolverSocket.send(queryBuffer, resolverPort, resolverIP, (err) => {
     if (err) {
       console.error("Error forwarding query to resolver:", err);
