@@ -134,28 +134,37 @@ function createAnswerSection(domain){
   return Buffer.concat([name, type, classField, ttl, rdlength, rdata]);
 }
 
-let resolverArgIndex = process.argv.indexOf("--resolver");
-let resolverAdress = null
-if(resolverArgIndex !== -1 && process.argv.length > resolverArgIndex + 1)
-{
-  resolverAdress = process.argv[resolverArgIndex + 1]
-  console.log(resolverAdress)
-}else {
+const resolverArgIndex = process.argv.indexOf("--resolver");
+let resolverAddress = null;
+if (resolverArgIndex !== -1 && process.argv.length > resolverArgIndex + 1) {
+  resolverAddress = process.argv[resolverArgIndex + 1];
+} else {
   console.log("No resolver address provided. Use --resolver <address>");
   process.exit(1);
 }
 
-const [resolverIPAdress,resolverPort] = resolverAdress.split(":")
+const [resolverIP, resolverPort] = resolverAddress.split(":");
 
+// Create UDP socket for your DNS server
 const udpSocket = dgram.createSocket("udp4");
 udpSocket.bind(2053, "127.0.0.1");
 
-function queryToResolver(queryBuffer, resolverIP, resolverPort, clientInfo)
-{
-  // Define resolverSocket inside this function
+udpSocket.on("message", (buf, rinfo) => {
+  try {
+    console.log("Received query from client");
+
+    // Forward query to the specified resolver
+    forwardQueryToResolver(buf, resolverIP, resolverPort, rinfo);
+
+  } catch (e) {
+    console.error(`Error processing query: ${e}`);
+  }
+});
+
+function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort, clientInfo) {
   const resolverSocket = dgram.createSocket("udp4");
 
-  // Send the query to the resolver (e.g., Google DNS at 8.8.8.8)
+  // Send the query to the resolver
   resolverSocket.send(queryBuffer, resolverPort, resolverIP, (err) => {
     if (err) {
       console.error("Error forwarding query to resolver:", err);
@@ -172,101 +181,18 @@ function queryToResolver(queryBuffer, resolverIP, resolverPort, clientInfo)
     // Close resolver socket after forwarding
     resolverSocket.close();
   });
-
-  resolverSocket.on("error", (err) => {
-    console.error(`Resolver socket error: ${err}`);
-  });
 }
 
-function handleResolverResponse(buf,clientInfo){
-  udpSocket.send(buf,clientInfo.port,clientInfo.address, (err) => {
+function handleResolverResponse(resolverResponse, clientInfo) {
+  // Forward the resolver's response back to the original client
+  udpSocket.send(resolverResponse, clientInfo.port, clientInfo.address, (err) => {
     if (err) {
       console.error("Error sending response back to client:", err);
     } else {
-      const header = createDNSHeader(buf)
-      let offset = 12; // DNS header ends at byte 12
-      const questionCount = buf.readUInt16BE(4); // QDCOUNT
-  
-      let questions = [];
-      for (let i = 0; i < questionCount; i++) {
-        const question = getDomainName(buf, offset);
-        console.log(question)
-        questions.push(question.domain);
-        offset = question.newOffset + 4; // Update offset after reading each question
-      }
-      console.log(questions)
-      const questionSection = Buffer.concat(
-        questions.map(domain => createQuestionSection(domain))
-      );
-  
-      const answerSection = Buffer.concat(
-        questions.map(domain => createAnswerSection(domain))
-      );
-  
-      const response = Buffer.concat([header, questionSection, answerSection]);
-      udpSocket.send(response, rinfo.port, rinfo.address);
+      console.log("Response sent back to client at:", clientInfo.address);
     }
-  })
+  });
 }
-
-udpSocket.on("message", (buf, rinfo) => {
-  try {
-    const header = createDNSHeader(buf);
-    let offset = 12; // DNS header ends at byte 12
-    const questionCount = buf.readUInt16BE(4); // QDCOUNT
-
-    let questions = [];
-    for (let i = 0; i < questionCount; i++) {
-      const question = getDomainName(buf, offset);
-      questions.push(question.domain);
-      offset = question.newOffset + 4; // Update offset after reading each question
-    }
-
-    const questionSection = Buffer.concat(
-      questions.map(domain => createQuestionSection(domain))
-    );
-
-    const answerSection = Buffer.concat(
-      questions.map(domain => createAnswerSection(domain))
-    );
-
-    const response = Buffer.concat([header, questionSection, answerSection]);
-    udpSocket.send(response, rinfo.port, rinfo.address); // Send response using udpSocket
-  } catch (e) {
-    console.log(`Error receiving data: ${e}`);
-  }
-});
-
-resolverSocket.on("message", (buf,rinfo)=>{
-  try {
-    queryToResolver(buf,resolverIPAdress,resolverPort,rinfo)
-    // const header = createDNSHeader(buf)
-    // let offset = 12; // DNS header ends at byte 12
-    // const questionCount = buf.readUInt16BE(4); // QDCOUNT
-
-    // let questions = [];
-    // for (let i = 0; i < questionCount; i++) {
-    //   const question = getDomainName(buf, offset);
-    //   console.log(question)
-    //   questions.push(question.domain);
-    //   offset = question.newOffset + 4; // Update offset after reading each question
-    // }
-    // console.log(questions)
-    // const questionSection = Buffer.concat(
-    //   questions.map(domain => createQuestionSection(domain))
-    // );
-
-    // const answerSection = Buffer.concat(
-    //   questions.map(domain => createAnswerSection(domain))
-    // );
-
-    // const response = Buffer.concat([header, questionSection, answerSection]);
-    // udpSocket.send(response, rinfo.port, rinfo.address);
-
-  } catch (e) {
-    console.log(`Error receiving data: ${e}`);
-  }
-})
 
 udpSocket.on("error", (err) => {
   console.log(`Error: ${err}`);
@@ -274,5 +200,5 @@ udpSocket.on("error", (err) => {
 
 udpSocket.on("listening", () => {
   const address = udpSocket.address();
-  console.log(`Server listening ${address.address}:${address.port}`);
+  console.log(`Server listening on ${address.address}:${address.port}`);
 });
