@@ -333,28 +333,7 @@ function handleResolverResponse(resolverResponse, clientInfo) {
     if (err) {
       console.error("Error sending response back to client:", err);
     } else {
-          const header = createDNSHeader(resolverResponse)
-    let offset = 12; // DNS header ends at byte 12
-    const questionCount = resolverResponse.readUInt16BE(4); // QDCOUNT
-
-    let questions = [];
-    for (let i = 0; i < questionCount; i++) {
-      const question = getDomainName(resolverResponse, offset);
-      console.log(question)
-      questions.push(question.domain);
-      offset = question.newOffset + 4; // Update offset after reading each question
-    }
-    console.log(questions)
-    const questionSection = Buffer.concat(
-      questions.map(domain => createQuestionSection(domain))
-    );
-
-    const answerSection = Buffer.concat(
-      questions.map(domain => createAnswerSection(domain))
-    );
-
-    const response = Buffer.concat([header, questionSection, answerSection]);
-    resolverSocket.send(response, rinfo.port, rinfo.address);
+      console.log("Response sent back to client at:", clientInfo.address);
     }
   });
 }
