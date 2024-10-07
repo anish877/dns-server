@@ -298,6 +298,7 @@ udpSocket.on("message", (buf, rinfo) => {
     console.log("Received query from client");
 
     // Forward query to the specified resolver
+    console.log(buf.readInt16BE(4))
     forwardQueryToResolver(buf, resolverIP, resolverPort, rinfo);
 
   } catch (e) {
