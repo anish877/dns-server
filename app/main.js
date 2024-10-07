@@ -348,7 +348,7 @@ function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort, clientInf
     handleResolverResponse(resolverResponse, clientInfo);
 
     // Close resolver socket after forwarding
-    resolverSocket.close();
+    // resolverSocket.close();
   });
 }
 
