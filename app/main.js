@@ -305,7 +305,7 @@ udpSocket.on("message", (buf, rinfo) => {
   }
 });
 
-function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort, clientInfo) {
+async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort, clientInfo) {
   const resolverSocket = dgram.createSocket("udp4");
 
     const header = createDNSHeader(queryBuffer)
