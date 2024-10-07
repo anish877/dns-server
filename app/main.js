@@ -328,7 +328,7 @@ async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort, cli
     response = Buffer.concat([header, questionSection]);
   
   // Send the query to the resolver
-  resolverSocket.send(queryBuffer, resolverPort, resolverIP, (err) => {
+  resolverSocket.send(queryBuffer[0], resolverPort, resolverIP, (err) => {
     if (err) {
       console.error("Error forwarding query to resolver:", err);
     }
