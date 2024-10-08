@@ -20,16 +20,16 @@ function createDNSHeader(buff) {
   header.writeUInt16BE(buff.readUInt16BE(2), 2);
 
   // QDCOUNT (number of questions) - 16 bits: Set to 0 for this stage
-  header.writeUInt16BE(1, 4);
+  header.writeUInt16BE(buff.readUInt16BE(4), 4);
 
   // ANCOUNT (number of answers) - 16 bits: Set to 0 for this stage
-  header.writeUInt16BE(0, 6);
+  header.writeUInt16BE(buff.readUInt16BE(6), 6);
 
   // NSCOUNT (number of authority records) - 16 bits: Set to 0
-  header.writeUInt16BE(0, 8);
+  header.writeUInt16BE(buff.readUInt16BE(8), 8);
 
   // ARCOUNT (number of additional records) - 16 bits: Set to 0
-  header.writeUInt16BE(0, 10);
+  header.writeUInt16BE(buff.readUInt16BE(10), 10);
 
   return header;
 }
@@ -298,17 +298,20 @@ udpSocket.on("message", (buf, rinfo) => {
     const header = createDNSHeader(buf)
     let offset = 12; // DNS header ends at byte 12
     const questionCount = buf.readUInt16BE(4); // QDCOUNT
+
     let questions = [];
     for (let i = 0; i < questionCount; i++) {
       const question = getDomainName(buf, offset);
       questions.push(question.domain);
-      const questionSection = createQuestionSection(question.domain)
-      const response = Buffer.concat([header,questionSection])
-      console.log(response.toString('hex'))
-      console.log(buf.toString('hex'))
-      forwardQueryToResolver(response,resolverIP, resolverPort, rinfo)
       offset = question.newOffset + 4; // Update offset after reading each question
     }
+    const questionSection = Buffer.concat(
+      questions.map(domain => createQuestionSection(domain))
+    );
+
+    const response = Buffer.concat([header, questionSection, answerSection]);
+    // Forward query to the specified resolver
+    forwardQueryToResolver(response, resolverIP, resolverPort, rinfo);
 
   } catch (e) {
     console.error(`Error processing query: ${e}`);
@@ -317,6 +320,7 @@ udpSocket.on("message", (buf, rinfo) => {
 
 async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort, clientInfo) {
   const resolverSocket = dgram.createSocket("udp4");
+  console.log(queryBuffer.toString('hex'));
   // Send the entire query (including multiple questions) to the external resolver
   resolverSocket.send(queryBuffer, resolverPort, resolverIP, (err) => {
     if (err) {
