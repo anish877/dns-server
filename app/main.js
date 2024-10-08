@@ -287,7 +287,6 @@ if (resolverArgIndex !== -1 && process.argv.length > resolverArgIndex + 1) {
 }
 
 const [resolverIP, resolverPort] = resolverAddress.split(":");
-let answers = [];
 
 
 // Create UDP socket for your DNS server
@@ -300,6 +299,7 @@ udpSocket.on("message", (buf, rinfo) => {
     let realID;
     let questions = [];
     let domains = [];
+    let answers = []
     const header = createDNSHeader(buf)
     let offset = 12; // DNS header ends at byte 12
     const questionCount = buf.readUInt16BE(4); // QDCOUNT
@@ -315,7 +315,7 @@ udpSocket.on("message", (buf, rinfo) => {
       questions.push(questionSection);
       offset = question.newOffset + 4; // Update offset after reading each question
     }
-    handleResolverResponse(rinfo, questions, realID, buf);
+    handleResolverResponse(answers, rinfo, questions, realID, buf);
     // Forward query to the specified resolver
     
   } catch (e) {
@@ -358,7 +358,7 @@ async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort) {
 
 }
 
-function handleResolverResponse( clientInfo, questions, realID, header) {
+function handleResolverResponse( answers, clientInfo, questions, realID, header) {
   // Forward the resolver's response back to the original client
   let section = []
   header.writeInt16BE(realID,0)
@@ -378,7 +378,6 @@ function handleResolverResponse( clientInfo, questions, realID, header) {
       console.log("Response sent back to client at:", clientInfo.address); 
     }
   });
-  answers = []
 }
 
 udpSocket.on("error", (err) => {
