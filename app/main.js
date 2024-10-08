@@ -358,7 +358,7 @@ async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort) {
 
 }
 
-function handleResolverResponse(resolverResponse, clientInfo, questions, realID, header) {
+function handleResolverResponse(answers, clientInfo, questions, realID, header) {
   // Forward the resolver's response back to the original client
   let section = []
   header.writeInt16BE(realID,0)
