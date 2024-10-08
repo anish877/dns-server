@@ -358,10 +358,10 @@ async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort) {
 
 }
 
-function handleResolverResponse(resolverResponse, clientInfo, questions, realID, buf) {
+function handleResolverResponse(resolverResponse, clientInfo, questions, realID, header) {
   // Forward the resolver's response back to the original client
   let section = []
-  const header = Buffer.concat([realID,buf.readUInt16BE(2),buf.readUInt16BE(4),buf.readUInt16BE(6),buf.readUInt16BE(8),buf.readUInt16BE(10)])
+  header.writeInt16BE(realID,0)
   section.push[header]
   for(i=0;i<questions.length;i++)
   {
