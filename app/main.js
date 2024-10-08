@@ -20,16 +20,16 @@ function createDNSHeader(buff) {
   header.writeUInt16BE(buff.readUInt16BE(2), 2);
 
   // QDCOUNT (number of questions) - 16 bits: Set to 0 for this stage
-  header.writeUInt16BE(buff.readUInt16BE(4), 4);
+  header.writeUInt16BE(1, 4);
 
   // ANCOUNT (number of answers) - 16 bits: Set to 0 for this stage
-  header.writeUInt16BE(buff.readUInt16BE(6), 6);
+  header.writeUInt16BE(0, 6);
 
   // NSCOUNT (number of authority records) - 16 bits: Set to 0
-  header.writeUInt16BE(buff.readUInt16BE(8), 8);
+  header.writeUInt16BE(0, 8);
 
   // ARCOUNT (number of additional records) - 16 bits: Set to 0
-  header.writeUInt16BE(buff.readUInt16BE(10), 10);
+  header.writeUInt16BE(0, 10);
 
   return header;
 }
@@ -302,17 +302,14 @@ udpSocket.on("message", (buf, rinfo) => {
     let questions = [];
     for (let i = 0; i < questionCount; i++) {
       const question = getDomainName(buf, offset);
+      const questionSection = createQuestionSection(question.domain)
+      const response = Buffer.concat(header,questionSection)
+      forwardQueryToResolver(response, resolverIP, resolverPort, rinfo);
       questions.push(question.domain);
       offset = question.newOffset + 4; // Update offset after reading each question
     }
-    const questionSection = Buffer.concat(
-      questions.map(domain => createQuestionSection(domain))
-    );
-
-    const response = Buffer.concat([header, questionSection]);
     // Forward query to the specified resolver
-    forwardQueryToResolver(response, resolverIP, resolverPort, rinfo);
-
+    
   } catch (e) {
     console.error(`Error processing query: ${e}`);
   }
