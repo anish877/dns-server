@@ -336,7 +336,7 @@ async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort, cli
 
 function handleResolverResponse(resolverResponse, clientInfo) {
   // Forward the resolver's response back to the original client
-  const header = Buffer.concat([resolverResponse.readUInt16BE(0),resolverResponse.readUInt16BE(2),resolverResponse.readUInt16BE(4),resolverResponse.readUInt16BE(6),resolverResponse.readUInt16BE(8),resolverResponse.readUInt16BE(10)])
+  // const header = Buffer.concat([resolverResponse.readUInt16BE(0),resolverResponse.readUInt16BE(2),resolverResponse.readUInt16BE(4),resolverResponse.readUInt16BE(6),resolverResponse.readUInt16BE(8),resolverResponse.readUInt16BE(10)])
   udpSocket.send(resolverResponse, clientInfo.port, clientInfo.address, (err) => {
     if (err) {
       console.error("Error sending response back to client:", err);
