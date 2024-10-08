@@ -287,7 +287,7 @@ if (resolverArgIndex !== -1 && process.argv.length > resolverArgIndex + 1) {
 }
 
 const [resolverIP, resolverPort] = resolverAddress.split(":");
-
+let answers = []
 
 // Create UDP socket for your DNS server
 const udpSocket = dgram.createSocket("udp4");
@@ -299,7 +299,6 @@ udpSocket.on("message", (buf, rinfo) => {
     let realID;
     let questions = [];
     let domains = [];
-    let answers = []
     const header = createDNSHeader(buf)
     let offset = 12; // DNS header ends at byte 12
     const questionCount = buf.readUInt16BE(4); // QDCOUNT
