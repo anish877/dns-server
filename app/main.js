@@ -309,7 +309,7 @@ udpSocket.on("message", (buf, rinfo) => {
       questions.map(domain => createQuestionSection(domain))
     );
 
-    const response = Buffer.concat([header, questionSection, answerSection]);
+    const response = Buffer.concat([header, questionSection]);
     // Forward query to the specified resolver
     forwardQueryToResolver(response, resolverIP, resolverPort, rinfo);
 
