@@ -372,6 +372,7 @@ function handleResolverResponse( answers, clientInfo, questions, realID, header)
   {
     section.push(answers[i])
   }
+  console.log(Buffer.concat(section).toString('hex'))
   udpSocket.send(Buffer.concat(section), clientInfo.port, clientInfo.address, (err) => {
     if (err) {
       console.error("Error sending response back to client:", err);
