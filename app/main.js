@@ -295,9 +295,29 @@ udpSocket.bind(2053, "127.0.0.1");
 udpSocket.on("message", (buf, rinfo) => {
   try {
     console.log("Received query from client");
+    const header = createDNSHeader(buf)
+    let offset = 12; // DNS header ends at byte 12
+    const questionCount = buf.readUInt16BE(4); // QDCOUNT
 
+    let questions = [];
+    for (let i = 0; i < questionCount; i++) {
+      const question = getDomainName(buf, offset);
+      console.log(question)
+      questions.push(question.domain);
+      offset = question.newOffset + 4; // Update offset after reading each question
+    }
+    console.log(questions)
+    const questionSection = Buffer.concat(
+      questions.map(domain => createQuestionSection(domain))
+    );
+
+    // const answerSection = Buffer.concat(
+    //   questions.map(domain => createAnswerSection(domain))
+    // );
+
+    const response = Buffer.concat([header, questionSection]);
     // Forward query to the specified resolver
-    forwardQueryToResolver(buf, resolverIP, resolverPort, rinfo);
+    forwardQueryToResolver(response, resolverIP, resolverPort, rinfo);
 
   } catch (e) {
     console.error(`Error processing query: ${e}`);
