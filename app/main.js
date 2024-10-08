@@ -106,28 +106,28 @@ function createQuestionSection(domain) {
   return Buffer.concat([name, type, classField]);
 }
 
-function createAnswerSection(domain){
+function createAnswerSection(buff,domain){
 
   const name = getEncodedName(domain)
 
   // Type (A record) - 2 bytes, big-endian
   const type = Buffer.alloc(2);
-  type.writeUInt16BE(1, 0); // 1 corresponds to an A record
+  type.writeUInt16BE(buff.readUInt16BE(0), 0); // 1 corresponds to an A record
 
   // Class (IN) - 2 bytes, big-endian
   const classField = Buffer.alloc(2);
-  classField.writeUInt16BE(1, 0); // 1 corresponds to IN (Internet class)
+  classField.writeUInt16BE(buff.readUInt16BE(2), 0); // 1 corresponds to IN (Internet class)
 
   // TTL (Time to live) - 4 bytes, big-endian
   const ttl = Buffer.alloc(4);
-  ttl.writeUInt32BE(60, 0); // TTL of 60 seconds
+  ttl.writeUInt32BE(buff.readUInt32BE(4), 0); // TTL of 60 seconds
 
   // RDLENGTH (length of RDATA) - 2 bytes, big-endian
   const rdlength = Buffer.alloc(2);
-  rdlength.writeUInt16BE(4, 0); // 4 bytes for the IPv4 address
+  rdlength.writeUInt16BE(buff.readUInt16BE(8), 0); // 4 bytes for the IPv4 address
 
   // RDATA (IPv4 address) - 4 bytes, big-endian
-  const rdata = Buffer.from([8, 8, 8, 8]); // Example IP address (8.8.8.8)
+  const rdata = Buffer.from(buff.readUInt32BE(10)); // Example IP address (8.8.8.8)
 
   // Concatenate all parts
   return Buffer.concat([name, type, classField, ttl, rdlength, rdata]);
@@ -287,6 +287,8 @@ if (resolverArgIndex !== -1 && process.argv.length > resolverArgIndex + 1) {
 }
 
 const [resolverIP, resolverPort] = resolverAddress.split(":");
+let answers = [];
+
 
 // Create UDP socket for your DNS server
 const udpSocket = dgram.createSocket("udp4");
@@ -295,21 +297,25 @@ udpSocket.bind(2053, "127.0.0.1");
 udpSocket.on("message", (buf, rinfo) => {
   try {
     console.log("Received query from client");
+    let realID;
+    let questions = [];
+    let domains = [];
     const header = createDNSHeader(buf)
     let offset = 12; // DNS header ends at byte 12
     const questionCount = buf.readUInt16BE(4); // QDCOUNT
-
-    let questions = [];
     for (let i = 0; i < questionCount; i++) {
       const question = getDomainName(buf, offset);
+      realID = buf.readInt16BE(0)
       buf.writeInt16BE(Math.floor(1000 + Math.random() * 9000),0)
-      console.log(buf.toString('hex'))
       const questionSection = createQuestionSection(question.domain)
       const response = Buffer.concat([header,questionSection])
-      forwardQueryToResolver(response, resolverIP, resolverPort, rinfo);
-      questions.push(question.domain);
+      console.log(response.toString('hex'))
+      forwardQueryToResolver(response, resolverIP, resolverPort, rinfo, questions, realID);
+      domains.push[question.domain]
+      questions.push(questionSection);
       offset = question.newOffset + 4; // Update offset after reading each question
     }
+    handleResolverResponse(answers, clientInfo, questions, realID);
     // Forward query to the specified resolver
     
   } catch (e) {
@@ -317,7 +323,7 @@ udpSocket.on("message", (buf, rinfo) => {
   }
 });
 
-async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort, clientInfo) {
+async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort, clientInfo, questions, realID) {
   const resolverSocket = dgram.createSocket("udp4");
   // console.log(queryBuffer.toString('hex'));
   // Send the entire query (including multiple questions) to the external resolver
@@ -326,25 +332,53 @@ async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort, cli
       console.error("Error forwarding query to resolver:", err);
     }
   });
+    resolverSocket.on("message", (resolverResponse) => {
+      console.log("Received response from resolver");
+      console.log(resolverResponse.toString('hex'))
+      const dnsResponse = Buffer.from(resolverResponse.toString('hex'),'hex')
+      // DNS Header is 12 bytes
+      const headerLength = 12;
 
-  resolverSocket.on("message", (resolverResponse) => {
-    console.log("Received response from resolver");
-    console.log(resolverResponse.toString('hex'))
-    handleResolverResponse(resolverResponse, clientInfo);
-    resolverSocket.close();
-  });
+      // Skipping the Question Section: variable length based on domain name
+      // We know this is how the domain is formatted (length-prefixed labels).
+      // Example: 03646566116c6f6e67617373646f6d61696e6e616d6503636f6d
+
+      // The domain name ends with `00` (null terminator), and after that, there are 4 more bytes for QTYPE and QCLASS.
+      const questionLength = dnsResponse.indexOf(0x00, headerLength) - headerLength + 5; // +5 for the null byte + QTYPE + QCLASS
+
+      // Answer section starts after the question
+      const answerOffset = headerLength + questionLength;
+
+      // Extract the answer section
+      const answerSection = dnsResponse.slice(answerOffset);
+      answers.push(answerSection)
+      console.log("Answer Section:", answerSection.toString('hex'));
+      resolverSocket.close();
+    });
+
 }
 
-function handleResolverResponse(resolverResponse, clientInfo) {
-  // // Forward the resolver's response back to the original client
-  // const header = Buffer.concat([resolverResponse.readUInt16BE(0),resolverResponse.readUInt16BE(2),resolverResponse.readUInt16BE(4),resolverResponse.readUInt16BE(6),resolverResponse.readUInt16BE(8),resolverResponse.readUInt16BE(10)])
-  udpSocket.send(resolverResponse, clientInfo.port, clientInfo.address, (err) => {
+function handleResolverResponse(resolverResponse, clientInfo, questions, realID) {
+  // Forward the resolver's response back to the original client
+  let section = []
+  const header = Buffer.concat([realID,resolverResponse.readUInt16BE(2),resolverResponse.readUInt16BE(4),resolverResponse.readUInt16BE(6),resolverResponse.readUInt16BE(8),resolverResponse.readUInt16BE(10)])
+  section.push[header]
+  for(i=0;i<questions.length;i++)
+  {
+    section.push(questions[i])
+  }
+  for(i=0;i<questions.length;i++)
+  {
+    section.push(answers[i])
+  }
+  udpSocket.send(Buffer.concat(section), clientInfo.port, clientInfo.address, (err) => {
     if (err) {
       console.error("Error sending response back to client:", err);
     } else {
       console.log("Response sent back to client at:", clientInfo.address); 
     }
   });
+  answers = []
 }
 
 udpSocket.on("error", (err) => {
