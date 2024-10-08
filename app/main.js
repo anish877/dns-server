@@ -314,7 +314,7 @@ udpSocket.on("message", (buf, rinfo) => {
       questions.push(questionSection);
       offset = question.newOffset + 4; // Update offset after reading each question
     }
-    handleResolverResponse(answers, rinfo, questions, realID, buf);
+    handleResolverResponse(answers, rinfo, questions, realID, header);
     // Forward query to the specified resolver
     
   } catch (e) {
@@ -361,6 +361,8 @@ function handleResolverResponse( answers, clientInfo, questions, realID, header)
   // Forward the resolver's response back to the original client
   let section = []
   header.writeInt16BE(realID,0)
+  header.writeInt16BE(questions.length,4)
+  header.writeInt16BE(answers.length,6)
   section.push[header]
   for(i=0;i<questions.length;i++)
   {
