@@ -303,7 +303,7 @@ udpSocket.on("message", (buf, rinfo) => {
     for (let i = 0; i < questionCount; i++) {
       const question = getDomainName(buf, offset);
       const questionSection = createQuestionSection(question.domain)
-      const response = Buffer.concat(header,questionSection)
+      const response = Buffer.concat([header,questionSection])
       forwardQueryToResolver(response, resolverIP, resolverPort, rinfo);
       questions.push(question.domain);
       offset = question.newOffset + 4; // Update offset after reading each question
