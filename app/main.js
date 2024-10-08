@@ -302,6 +302,7 @@ udpSocket.on("message", (buf, rinfo) => {
     let questions = [];
     for (let i = 0; i < questionCount; i++) {
       const question = getDomainName(buf, offset);
+      buf.writeInt16BE(Math.floor(1000 + Math.random() * 9000),0)
       console.log(buf.toString('hex'))
       const questionSection = createQuestionSection(question.domain)
       const response = Buffer.concat([header,questionSection])
@@ -335,7 +336,7 @@ async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort, cli
 }
 
 function handleResolverResponse(resolverResponse, clientInfo) {
-  // Forward the resolver's response back to the original client
+  // // Forward the resolver's response back to the original client
   // const header = Buffer.concat([resolverResponse.readUInt16BE(0),resolverResponse.readUInt16BE(2),resolverResponse.readUInt16BE(4),resolverResponse.readUInt16BE(6),resolverResponse.readUInt16BE(8),resolverResponse.readUInt16BE(10)])
   udpSocket.send(resolverResponse, clientInfo.port, clientInfo.address, (err) => {
     if (err) {
