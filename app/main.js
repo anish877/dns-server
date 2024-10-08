@@ -302,7 +302,7 @@ udpSocket.on("message", (buf, rinfo) => {
     for (let i = 0; i < questionCount; i++) {
       const question = getDomainName(buf, offset);
       questions.push(question.domain);
-      const questionSection = createQuestionSection(question)
+      const questionSection = createQuestionSection(question.domain)
       const response = Buffer.concat([header,questionSection])
       console.log(response.toString('hex'))
       console.log(buf.toString('hex'))
