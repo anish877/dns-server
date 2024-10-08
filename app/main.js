@@ -5,7 +5,7 @@ function createDNSHeader(buff) {
   const header = Buffer.alloc(12); // DNS header is 12 bytes
 
   // Packet Identifier (ID) - 16 bits: Set to 1234 (0x04D2 in hex)
-  header.writeUInt16BE(Math.floor(Math.random()*10000), 0);
+  header.writeUInt16BE(buff.readUInt16BE(0), 0);
 
   // Flags - 16 bits: QR = 1, OPCODE = 0, AA = 0, TC = 0, RD = 0, RA = 0, Z = 0, RCODE = 0
   // QR (1) OPCODE (4) AA (1) TC (1) RD (1) RA (1) Z (3) RCODE (4)
