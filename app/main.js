@@ -17,7 +17,7 @@ function createDNSHeader(buff) {
 
   // QR = 1 (response), AA = 0, TC = 0, RA = 0QD
   const flags = 0x8000 | opcode | rd | rcode; // Construct flags with RD included
-  header.writeUInt16BE(flags, 2);
+  header.writeUInt16BE(buff.readUInt16BE(2), 2);
 
   // QDCOUNT (number of questions) - 16 bits: Set to 0 for this stage
   header.writeUInt16BE(1, 4);
@@ -317,7 +317,6 @@ udpSocket.on("message", (buf, rinfo) => {
 
 async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort, clientInfo) {
   const resolverSocket = dgram.createSocket("udp4");
-  console.log(queryBuffer.toString('hex'));
   // Send the entire query (including multiple questions) to the external resolver
   resolverSocket.send(queryBuffer, resolverPort, resolverIP, (err) => {
     if (err) {
