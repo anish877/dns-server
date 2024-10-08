@@ -310,12 +310,12 @@ udpSocket.on("message", (buf, rinfo) => {
       const questionSection = createQuestionSection(question.domain)
       const response = Buffer.concat([header,questionSection])
       console.log(response.toString('hex'))
-      forwardQueryToResolver(response, resolverIP, resolverPort, rinfo, questions, realID);
+      forwardQueryToResolver(response, resolverIP, resolverPort);
       domains.push[question.domain]
       questions.push(questionSection);
       offset = question.newOffset + 4; // Update offset after reading each question
     }
-    handleResolverResponse(answers, clientInfo, questions, realID);
+    handleResolverResponse(answers, rinfo, questions, realID);
     // Forward query to the specified resolver
     
   } catch (e) {
@@ -323,7 +323,7 @@ udpSocket.on("message", (buf, rinfo) => {
   }
 });
 
-async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort, clientInfo, questions, realID) {
+async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort) {
   const resolverSocket = dgram.createSocket("udp4");
   // console.log(queryBuffer.toString('hex'));
   // Send the entire query (including multiple questions) to the external resolver
