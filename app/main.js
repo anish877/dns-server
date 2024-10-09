@@ -301,6 +301,7 @@ udpSocket.on("message", async (buf, rinfo) => {
     let questions = [];
     let domains = [];
     let answers = [];
+    let responseHeader
     const header = createDNSHeader(buf);
     let offset = 12; // DNS header ends at byte 12
     const questionCount = buf.readUInt16BE(4); // QDCOUNT
@@ -317,8 +318,8 @@ udpSocket.on("message", async (buf, rinfo) => {
       console.log(response.toString('hex'));
 
       // Wait for the resolver's response
-      const { responseHeader: resolverHeader, answer: resolverAnswer } = await forwardQueryToResolver(response, resolverIP, resolverPort);
-      
+      const { header: resolverHeader, answer: resolverAnswer } = await forwardQueryToResolver(response, resolverIP, resolverPort);
+      responseHeader = resolverHeader
       // Process the resolver response here
       answers.push(resolverAnswer);
       
@@ -328,7 +329,7 @@ udpSocket.on("message", async (buf, rinfo) => {
     }
 
     // Handle the final resolver response after processing all questions
-    handleResolverResponse(answers, rinfo, questions, realID, Buffer.from(responseHeader));
+    handleResolverResponse(answers, rinfo, questions, realID, responseHeader);
   
   } catch (e) {
     console.error(`Error processing query: ${e}`);
