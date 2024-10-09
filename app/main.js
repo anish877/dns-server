@@ -142,8 +142,6 @@ if (resolverArgIndex !== -1 && process.argv.length > resolverArgIndex + 1) {
 }
 
 const [resolverIP, resolverPort] = resolverAddress.split(":");
-let answers = []
-let responseHeader
 
 // Create UDP socket for your DNS server
 const udpSocket = dgram.createSocket("udp4");
