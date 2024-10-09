@@ -305,10 +305,9 @@ udpSocket.on("message", async (buf, rinfo) => {
     const header = createDNSHeader(buf);
     let offset = 12; // DNS header ends at byte 12
     const questionCount = buf.readUInt16BE(4); // QDCOUNT
-    
+    realID = buf.readInt16BE(0);
     for (let i = 0; i < questionCount; i++) {
       const question = getDomainName(buf, offset);
-      realID = buf.readInt16BE(0);
       
       // Update the Transaction ID with a random value
       buf.writeInt16BE(Math.floor(1000 + Math.random() * 9000), 0);
@@ -387,7 +386,7 @@ function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort) {
 function handleResolverResponse( answers, clientInfo, questions, realID, header) {
   // Forward the resolver's response back to the original client
   let section = []
-  // header.writeInt16BE(realID,0)
+  header.writeInt16BE(realID,0)
   header.writeInt16BE(questions.length,4)
   header.writeInt16BE(answers.length,6)
   section.push(header)
