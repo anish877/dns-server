@@ -293,7 +293,7 @@ let answers = []
 const udpSocket = dgram.createSocket("udp4");
 udpSocket.bind(2053, "127.0.0.1");
 
-udpSocket.on("message", (buf, rinfo) => {
+udpSocket.on("message", async (buf, rinfo) => {
   try {
     console.log("Received query from client");
     let realID;
@@ -310,7 +310,8 @@ udpSocket.on("message", (buf, rinfo) => {
       const questionSection = createQuestionSection(question.domain)
       const response = Buffer.concat([header,questionSection])
       console.log(response.toString('hex'))
-      forwardQueryToResolver(response, resolverIP, resolverPort);
+      const answer = await forwardQueryToResolver(response, resolverIP, resolverPort);
+      answers.push(answer)
       domains.push[question.domain]
       questions.push(questionSection);
       offset = question.newOffset + 4; // Update offset after reading each question
@@ -326,6 +327,7 @@ udpSocket.on("message", (buf, rinfo) => {
 
 async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort) {
   const resolverSocket = dgram.createSocket("udp4");
+  let answerSection
   // console.log(queryBuffer.toString('hex'));
   // Send the entire query (including multiple questions) to the external resolver
   resolverSocket.send(queryBuffer, resolverPort, resolverIP, (err) => {
@@ -351,11 +353,11 @@ async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort) {
       const answerOffset = headerLength + questionLength;
 
       // Extract the answer section
-      const answerSection = dnsResponse.slice(answerOffset);
-      answers.push(answerSection)
+      answerSection = dnsResponse.slice(answerOffset);
       console.log("Answer Section:", answerSection.toString('hex'));
       resolverSocket.close();
     });
+    return answerSection
 
 }
 
