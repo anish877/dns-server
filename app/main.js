@@ -305,30 +305,57 @@ udpSocket.on("message", async (buf, rinfo) => {
     const header = createDNSHeader(buf);
     let offset = 12; // DNS header ends at byte 12
     const questionCount = buf.readUInt16BE(4); // QDCOUNT
-    realID = buf.readInt16BE(0);
-    for (let i = 0; i < questionCount; i++) {
-      const question = getDomainName(buf, offset);
-      
-      // Update the Transaction ID with a random value
-      buf.writeInt16BE(Math.floor(1000 + Math.random() * 9000), 0);
-      
-      const questionSection = createQuestionSection(question.domain);
-      const response = Buffer.concat([header, questionSection]);
-      console.log(response.toString('hex'));
-
-      // Wait for the resolver's response
-      const { header: resolverHeader, answer: resolverAnswer } = await forwardQueryToResolver(response, resolverIP, resolverPort);
-      responseHeader = resolverHeader
-      // Process the resolver response here
-      answers.push(resolverAnswer);
-      
-      domains.push(question.domain);
-      questions.push(questionSection);
-      offset = question.newOffset + 4; // Update offset after reading each question
+    if(questionCount>1){
+      realID = buf.readInt16BE(0);
+      for (let i = 0; i < questionCount; i++) {
+        const question = getDomainName(buf, offset);
+        
+        // Update the Transaction ID with a random value
+        buf.writeInt16BE(Math.floor(1000 + Math.random() * 9000), 0);
+        
+        const questionSection = createQuestionSection(question.domain);
+        const response = Buffer.concat([header, questionSection]);
+        console.log(response.toString('hex'));
+  
+        // Wait for the resolver's response
+        const { header: resolverHeader, answer: resolverAnswer } = await forwardQueryToResolver(response, resolverIP, resolverPort);
+        responseHeader = resolverHeader
+        // Process the resolver response here
+        answers.push(resolverAnswer);
+        
+        domains.push(question.domain);
+        questions.push(questionSection);
+        offset = question.newOffset + 4; // Update offset after reading each question
+      }
+  
+      // Handle the final resolver response after processing all questions
+      handleResolverResponse(answers, rinfo, questions, realID, responseHeader);
     }
-
-    // Handle the final resolver response after processing all questions
-    handleResolverResponse(answers, rinfo, questions, realID, responseHeader);
+    else{
+      const resolverSocket = dgram.createSocket("udp4");
+      resolverSocket.send(buf,resolverPort,resolverIP,(err)=>{
+        if (err) {
+          console.error("Error forwarding query to resolver:", err);
+          reject(err); // Reject the promise if there is an error sending the query
+          resolverSocket.close(); // Close the socket on error
+          return;
+        }
+      })
+      resolverSocket.on('message',(response)=>{
+        udpSocket.send(response,rinfo.port,rinfo.address, (err) => {
+          if (err) {
+            console.error("Error sending response back to client:", err);
+          } else {
+            console.log("Response sent back to client at:", rinfo.address); 
+          }})
+        resolverSocket.close()
+      })
+      resolverSocket.on("error", (err) => {
+        console.error("Socket error:", err);
+        reject(err); // Reject the promise on socket error
+        resolverSocket.close(); // Close the socket on error
+      });
+    }
   
   } catch (e) {
     console.error(`Error processing query: ${e}`);
