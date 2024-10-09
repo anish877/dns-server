@@ -317,11 +317,12 @@ udpSocket.on("message", async (buf, rinfo) => {
       console.log(response.toString('hex'));
 
       // Wait for the resolver's response
-      const resolverResponse = await forwardQueryToResolver(response, resolverIP, resolverPort);
+      const { responseHeader: resolverHeader, answer: resolverAnswer } = await forwardQueryToResolver(response, resolverIP, resolverPort);
       
       // Process the resolver response here
-      answers.push(resolverResponse);
-      console.log(`Received response from resolver: ${resolverResponse.toString('hex')}`);
+      answers.push(resolverAnswer);
+      console.log(`Received response from resolver: ${resolverAnswer.toString('hex')}`);
+      console.log(`Received header from resolver: ${resolverHeader.toString('hex')}`);
       
       domains.push(question.domain);
       questions.push(questionSection);
@@ -329,7 +330,7 @@ udpSocket.on("message", async (buf, rinfo) => {
     }
 
     // Handle the final resolver response after processing all questions
-    handleResolverResponse(answers, rinfo, questions, realID, header);
+    handleResolverResponse(answers, rinfo, questions, realID, responseHeader);
   
   } catch (e) {
     console.error(`Error processing query: ${e}`);
@@ -359,6 +360,10 @@ function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort) {
       // DNS Header is 12 bytes
       const headerLength = 12;
 
+      // Extract the header section
+      const headerSection = dnsResponse.slice(0, headerLength);
+      console.log("Header Section:", headerSection.toString('hex'));
+
       // Calculate the length of the question section
       const questionLength = dnsResponse.indexOf(0x00, headerLength) - headerLength + 5; // +5 for the null byte + QTYPE + QCLASS
 
@@ -370,7 +375,9 @@ function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort) {
       console.log("Answer Section:", answerSection.toString('hex'));
 
       resolverSocket.close(); // Close the socket after receiving the response
-      resolve(answerSection); // Resolve the promise with the answer section
+      
+      // Resolve the promise with both the header and answer sections
+      resolve({ header: headerSection, answer: answerSection });
     });
 
     resolverSocket.on("error", (err) => {
