@@ -314,10 +314,8 @@ udpSocket.on("message", (buf, rinfo) => {
       questions.push(questionSection);
       offset = question.newOffset + 4; // Update offset after reading each question
     }
-    if(questions.length===answers.length)
-    {
       handleResolverResponse(answers, rinfo, questions, realID, header);
-    }
+
     // Forward query to the specified resolver
     
   } catch (e) {
