@@ -288,6 +288,7 @@ if (resolverArgIndex !== -1 && process.argv.length > resolverArgIndex + 1) {
 
 const [resolverIP, resolverPort] = resolverAddress.split(":");
 let answers = []
+let responseHeader
 
 // Create UDP socket for your DNS server
 const udpSocket = dgram.createSocket("udp4");
@@ -353,6 +354,7 @@ async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort) {
       // Extract the answer section
       const answerSection = dnsResponse.slice(answerOffset);
       answers.push(answerSection)
+      responseHeader = Buffer.concat([resolverResponse.readBigInt64BE(0),resolverResponse.readInt32BE(8)])
       console.log("Answer Section:", answerSection.toString('hex'));
       resolverSocket.close();
     });
@@ -362,11 +364,10 @@ async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort) {
 function handleResolverResponse( answers, clientInfo, questions, realID, header) {
   // Forward the resolver's response back to the original client
   let section = []
-  header.writeInt16BE(realID,0)
-  header.writeInt16BE(questions.length,4)
-  header.writeInt16BE(answers.length,6)
-  header.writeInt16BE(header.readInt16BE(2) | 0x80,2)
-  section.push(header)
+  responseHeader.writeInt16BE(realID,0)
+  responseHeader.writeInt16BE(questions.length,4)
+  responseHeader.writeInt16BE(answers.length,6)
+  section.push(responseHeader)
   for(i=0;i<questions.length;i++)
   {
     section.push(questions[i])
