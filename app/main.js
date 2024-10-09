@@ -321,8 +321,6 @@ udpSocket.on("message", async (buf, rinfo) => {
       
       // Process the resolver response here
       answers.push(resolverAnswer);
-      console.log(`Received response from resolver: ${resolverAnswer.toString('hex')}`);
-      console.log(`Received header from resolver: ${resolverHeader.toString('hex')}`);
       
       domains.push(question.domain);
       questions.push(questionSection);
@@ -353,7 +351,6 @@ function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort) {
 
     resolverSocket.on("message", (resolverResponse) => {
       console.log("Received response from resolver");
-      console.log(resolverResponse.toString('hex'));
       
       const dnsResponse = Buffer.from(resolverResponse.toString('hex'), 'hex');
 
@@ -362,7 +359,6 @@ function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort) {
 
       // Extract the header section
       const headerSection = dnsResponse.slice(0, headerLength);
-      console.log("Header Section:", headerSection.toString('hex'));
 
       // Calculate the length of the question section
       const questionLength = dnsResponse.indexOf(0x00, headerLength) - headerLength + 5; // +5 for the null byte + QTYPE + QCLASS
@@ -372,7 +368,6 @@ function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort) {
 
       // Extract the answer section
       const answerSection = dnsResponse.slice(answerOffset);
-      console.log("Answer Section:", answerSection.toString('hex'));
 
       resolverSocket.close(); // Close the socket after receiving the response
       
