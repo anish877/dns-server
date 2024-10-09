@@ -354,7 +354,7 @@ async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort) {
       // Extract the answer section
       const answerSection = dnsResponse.slice(answerOffset);
       answers.push(answerSection)
-      responseHeader = Buffer.concat([resolverResponse.readBigInt64BE(0),resolverResponse.readInt32BE(8)])
+      responseHeader = dnsResponse.slice(0,12)
       console.log("Answer Section:", answerSection.toString('hex'));
       resolverSocket.close();
     });
