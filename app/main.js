@@ -293,13 +293,12 @@ let answers = []
 const udpSocket = dgram.createSocket("udp4");
 udpSocket.bind(2053, "127.0.0.1");
 
-udpSocket.on("message", async (buf, rinfo) => {
+udpSocket.on("message", (buf, rinfo) => {
   try {
     console.log("Received query from client");
     let realID;
     let questions = [];
     let domains = [];
-    answers = []
     const header = createDNSHeader(buf)
     let offset = 12; // DNS header ends at byte 12
     const questionCount = buf.readUInt16BE(4); // QDCOUNT
@@ -310,8 +309,7 @@ udpSocket.on("message", async (buf, rinfo) => {
       const questionSection = createQuestionSection(question.domain)
       const response = Buffer.concat([header,questionSection])
       console.log(response.toString('hex'))
-      const answerSection = forwardQueryToResolver(response, resolverIP, resolverPort);
-      answers.push(answerSection)
+      forwardQueryToResolver(response, resolverIP, resolverPort);
       domains.push[question.domain]
       questions.push(questionSection);
       offset = question.newOffset + 4; // Update offset after reading each question
@@ -326,7 +324,6 @@ udpSocket.on("message", async (buf, rinfo) => {
 });
 
 async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort) {
-  let answerSection
   const resolverSocket = dgram.createSocket("udp4");
   // console.log(queryBuffer.toString('hex'));
   // Send the entire query (including multiple questions) to the external resolver
@@ -353,11 +350,12 @@ async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort) {
       const answerOffset = headerLength + questionLength;
 
       // Extract the answer section
-      answerSection = dnsResponse.slice(answerOffset);
+      const answerSection = dnsResponse.slice(answerOffset);
+      answers.push(answerSection)
       console.log("Answer Section:", answerSection.toString('hex'));
       resolverSocket.close();
     });
-    return answerSection
+
 }
 
 function handleResolverResponse( answers, clientInfo, questions, realID, header) {
