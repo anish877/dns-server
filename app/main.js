@@ -300,26 +300,37 @@ udpSocket.on("message", async (buf, rinfo) => {
     let realID;
     let questions = [];
     let domains = [];
-    answers = []
-    const header = createDNSHeader(buf)
+    let answers = [];
+    const header = createDNSHeader(buf);
     let offset = 12; // DNS header ends at byte 12
     const questionCount = buf.readUInt16BE(4); // QDCOUNT
+    
     for (let i = 0; i < questionCount; i++) {
       const question = getDomainName(buf, offset);
-      realID = buf.readInt16BE(0)
-      buf.writeInt16BE(Math.floor(1000 + Math.random() * 9000),0)
-      const questionSection = createQuestionSection(question.domain)
-      const response = Buffer.concat([header,questionSection])
-      console.log(response.toString('hex'))
-      await forwardQueryToResolver(response, resolverIP, resolverPort);
-      domains.push[question.domain]
+      realID = buf.readInt16BE(0);
+      
+      // Update the Transaction ID with a random value
+      buf.writeInt16BE(Math.floor(1000 + Math.random() * 9000), 0);
+      
+      const questionSection = createQuestionSection(question.domain);
+      const response = Buffer.concat([header, questionSection]);
+      console.log(response.toString('hex'));
+
+      // Wait for the resolver's response
+      const resolverResponse = await forwardQueryToResolver(response, resolverIP, resolverPort);
+      
+      // Process the resolver response here
+      answers.push(resolverResponse);
+      console.log(`Received response from resolver: ${resolverResponse.toString('hex')}`);
+      
+      domains.push(question.domain);
       questions.push(questionSection);
       offset = question.newOffset + 4; // Update offset after reading each question
     }
-      handleResolverResponse(answers, rinfo, questions, realID, header);
 
-    // Forward query to the specified resolver
-    
+    // Handle the final resolver response after processing all questions
+    handleResolverResponse(answers, rinfo, questions, realID, header);
+  
   } catch (e) {
     console.error(`Error processing query: ${e}`);
   }
@@ -359,28 +370,48 @@ async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort) {
     });
 }
 
-function handleResolverResponse( answers, clientInfo, questions, realID, header) {
-  // Forward the resolver's response back to the original client
-  let section = []
-  header.writeInt16BE(realID,0)
-  header.writeInt16BE(questions.length,4)
-  header.writeInt16BE(answers.length,6)
-  section.push(header)
-  for(i=0;i<questions.length;i++)
-  {
-    section.push(questions[i])
-  }
-  for(i=0;i<answers.length;i++)
-  {
-    section.push(answers[i])
-  }
-  console.log("finalresponse",Buffer.concat(section).toString('hex'))
-  udpSocket.send(Buffer.concat(section), clientInfo.port, clientInfo.address, (err) => {
-    if (err) {
-      console.error("Error sending response back to client:", err);
-    } else {
-      console.log("Response sent back to client at:", clientInfo.address); 
-    }
+function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort) {
+  return new Promise((resolve, reject) => {
+    const resolverSocket = dgram.createSocket("udp4");
+
+    // Send the entire query (including multiple questions) to the external resolver
+    resolverSocket.send(queryBuffer, resolverPort, resolverIP, (err) => {
+      if (err) {
+        console.error("Error forwarding query to resolver:", err);
+        reject(err); // Reject the promise if there is an error sending the query
+        resolverSocket.close(); // Close the socket on error
+        return;
+      }
+    });
+
+    resolverSocket.on("message", (resolverResponse) => {
+      console.log("Received response from resolver");
+      console.log(resolverResponse.toString('hex'));
+      
+      const dnsResponse = Buffer.from(resolverResponse.toString('hex'), 'hex');
+
+      // DNS Header is 12 bytes
+      const headerLength = 12;
+
+      // Calculate the length of the question section
+      const questionLength = dnsResponse.indexOf(0x00, headerLength) - headerLength + 5; // +5 for the null byte + QTYPE + QCLASS
+
+      // Answer section starts after the question
+      const answerOffset = headerLength + questionLength;
+
+      // Extract the answer section
+      const answerSection = dnsResponse.slice(answerOffset);
+      console.log("Answer Section:", answerSection.toString('hex'));
+
+      resolverSocket.close(); // Close the socket after receiving the response
+      resolve(answerSection); // Resolve the promise with the answer section
+    });
+
+    resolverSocket.on("error", (err) => {
+      console.error("Socket error:", err);
+      reject(err); // Reject the promise on socket error
+      resolverSocket.close(); // Close the socket on error
+    });
   });
 }
 
