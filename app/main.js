@@ -363,12 +363,12 @@ function handleResolverResponse( answers, clientInfo, questions, realID, header)
   header.writeInt16BE(realID,0)
   header.writeInt16BE(questions.length,4)
   header.writeInt16BE(answers.length,6)
-  section.push[header]
+  section.push(header)
   for(i=0;i<questions.length;i++)
   {
     section.push(questions[i])
   }
-  for(i=0;i<questions.length;i++)
+  for(i=0;i<answers.length;i++)
   {
     section.push(answers[i])
   }
