@@ -354,11 +354,10 @@ async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort) {
       // Extract the answer section
       const answerSection = dnsResponse.slice(answerOffset);
       answers.push(answerSection)
-      responseHeader = dnsResponse.slice(0,12)
+      responseHeader = Buffer.from(resolverResponse).slice(0,12)
       console.log("Answer Section:", answerSection.toString('hex'));
       resolverSocket.close();
     });
-
 }
 
 function handleResolverResponse( answers, clientInfo, questions, realID, header) {
