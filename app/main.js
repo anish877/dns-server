@@ -407,6 +407,7 @@ function handleResolverResponse( answers, clientInfo, questions, realID, header)
       console.log("Response sent back to client at:", clientInfo.address); 
     }
   });
+  section = []
 }
 
 udpSocket.on("error", (err) => {
