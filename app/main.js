@@ -399,7 +399,6 @@ function handleResolverResponse( answers, clientInfo, questions, realID, header)
   {
     section.push(answers[i])
   }
-  let finalresponse = Buffer.alloc(32)
   finalresponse = Buffer.concat(section)
   console.log("finalresponse",Buffer.concat(section).toString('hex'))
   udpSocket.send(finalresponse, clientInfo.port, clientInfo.address, (err) => {
@@ -409,7 +408,7 @@ function handleResolverResponse( answers, clientInfo, questions, realID, header)
       console.log("Response sent back to client at:", clientInfo.address); 
     }
   });
-  section = []
+  section = [null]
 }
 
 udpSocket.on("error", (err) => {
