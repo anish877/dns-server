@@ -310,7 +310,7 @@ udpSocket.on("message", async (buf, rinfo) => {
       const questionSection = createQuestionSection(question.domain)
       const response = Buffer.concat([header,questionSection])
       console.log(response.toString('hex'))
-      const answerSection = await forwardQueryToResolver(response, resolverIP, resolverPort);
+      const answerSection = forwardQueryToResolver(response, resolverIP, resolverPort);
       answers.push(answerSection)
       domains.push[question.domain]
       questions.push(questionSection);
