@@ -325,6 +325,7 @@ udpSocket.on("message", async (buf, rinfo) => {
 });
 
 async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort) {
+  let answerSection
   const resolverSocket = dgram.createSocket("udp4");
   // console.log(queryBuffer.toString('hex'));
   // Send the entire query (including multiple questions) to the external resolver
@@ -351,7 +352,7 @@ async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort) {
       const answerOffset = headerLength + questionLength;
 
       // Extract the answer section
-      const answerSection = dnsResponse.slice(answerOffset);
+      answerSection = dnsResponse.slice(answerOffset);
       console.log("Answer Section:", answerSection.toString('hex'));
       resolverSocket.close();
     });
