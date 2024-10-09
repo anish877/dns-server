@@ -336,40 +336,6 @@ udpSocket.on("message", async (buf, rinfo) => {
   }
 });
 
-async function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort) {
-  const resolverSocket = dgram.createSocket("udp4");
-  // console.log(queryBuffer.toString('hex'));
-  // Send the entire query (including multiple questions) to the external resolver
-  resolverSocket.send(queryBuffer, resolverPort, resolverIP, (err) => {
-    if (err) {
-      console.error("Error forwarding query to resolver:", err);
-    }
-  });
-    resolverSocket.on("message", (resolverResponse) => {
-      console.log("Received response from resolver");
-      console.log(resolverResponse.toString('hex'))
-      const dnsResponse = Buffer.from(resolverResponse.toString('hex'),'hex')
-      // DNS Header is 12 bytes
-      const headerLength = 12;
-
-      // Skipping the Question Section: variable length based on domain name
-      // We know this is how the domain is formatted (length-prefixed labels).
-      // Example: 03646566116c6f6e67617373646f6d61696e6e616d6503636f6d
-
-      // The domain name ends with `00` (null terminator), and after that, there are 4 more bytes for QTYPE and QCLASS.
-      const questionLength = dnsResponse.indexOf(0x00, headerLength) - headerLength + 5; // +5 for the null byte + QTYPE + QCLASS
-
-      // Answer section starts after the question
-      const answerOffset = headerLength + questionLength;
-
-      // Extract the answer section
-      const answerSection = dnsResponse.slice(answerOffset);
-      answers.push(answerSection)
-      console.log("Answer Section:", answerSection.toString('hex'));
-      resolverSocket.close();
-    });
-}
-
 function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort) {
   return new Promise((resolve, reject) => {
     const resolverSocket = dgram.createSocket("udp4");
@@ -412,6 +378,31 @@ function forwardQueryToResolver(queryBuffer, resolverIP, resolverPort) {
       reject(err); // Reject the promise on socket error
       resolverSocket.close(); // Close the socket on error
     });
+  });
+}
+
+function handleResolverResponse( answers, clientInfo, questions, realID, header) {
+  // Forward the resolver's response back to the original client
+  let section = []
+  header.writeInt16BE(realID,0)
+  header.writeInt16BE(questions.length,4)
+  header.writeInt16BE(answers.length,6)
+  section.push(header)
+  for(i=0;i<questions.length;i++)
+  {
+    section.push(questions[i])
+  }
+  for(i=0;i<answers.length;i++)
+  {
+    section.push(answers[i])
+  }
+  console.log("finalresponse",Buffer.concat(section).toString('hex'))
+  udpSocket.send(Buffer.concat(section), clientInfo.port, clientInfo.address, (err) => {
+    if (err) {
+      console.error("Error sending response back to client:", err);
+    } else {
+      console.log("Response sent back to client at:", clientInfo.address); 
+    }
   });
 }
 
