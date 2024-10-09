@@ -328,7 +328,7 @@ udpSocket.on("message", async (buf, rinfo) => {
     }
 
     // Handle the final resolver response after processing all questions
-    handleResolverResponse(answers, rinfo, questions, realID, responseHeader);
+    handleResolverResponse(answers, rinfo, questions, realID, Buffer.from(responseHeader));
   
   } catch (e) {
     console.error(`Error processing query: ${e}`);
