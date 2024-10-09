@@ -299,6 +299,7 @@ udpSocket.on("message", (buf, rinfo) => {
     let realID;
     let questions = [];
     let domains = [];
+    answers = []
     const header = createDNSHeader(buf)
     let offset = 12; // DNS header ends at byte 12
     const questionCount = buf.readUInt16BE(4); // QDCOUNT
