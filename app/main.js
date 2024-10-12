@@ -145,7 +145,7 @@ const [resolverIP, resolverPort] = resolverAddress.split(":");
 
 // Create UDP socket for your DNS server
 const udpSocket = dgram.createSocket("udp4");
-udpSocket.bind(2053, "127.0.0.1");
+udpSocket.bind(2053, "0.0.0.0");
 
 udpSocket.on("message", async (buf, rinfo) => {
   try {
