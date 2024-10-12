@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DNS Query Tool</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container" style="border-radius: 12px;">
+    <h2>DNS Query Tool</h2>
+    
+    <form id="dnsForm">
+      <label for="resolver">Enter Resolver Address (IP:Port):</label>
+      <input type="text" id="resolver" name="resolver" placeholder="e.g., 8.8.8.8:53" required>
+      
+      <label for="domain">Enter Domain Name:</label>
+      <input type="text" id="domain" name="domain" placeholder="e.g., google.com" required>
+      
+      <button type="submit">Run DNS Commands</button>
+    </form>
+
+    <h3>Command Output:</h3>
+    <div class="command-output">
+        <pre id="commandOutput">Output will appear here...</pre>
+    </div>
+
+  </div>
+
+  <script>
+    const dnsForm = document.getElementById('dnsForm');
+    const commandOutput = document.getElementById('commandOutput');
+
+    dnsForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+
+      const formData = new FormData(dnsForm);
+      const resolver = formData.get('resolver');
+      const domain = formData.get('domain');
+
+      fetch('/run-dns-commands', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ resolver, domain })
+      })
+      .then(response => response.json())
+      .then(result => {
+        if (result.error) {
+          commandOutput.textContent = `Error: ${result.error}`;
+        } else {
+          commandOutput.textContent = result.result;
+        }
+      })
+      .catch(error => {
+        commandOutput.textContent = `Request failed: ${error.message}`;
+      });
+    });
+  </script>
+</body>
+</html>
