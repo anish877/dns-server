@@ -17,7 +17,7 @@ app.get('/', (req, res) => {
 app.post('/run-dns-commands', (req, res) => {
   const { resolver, domain } = req.body;
 
-  const startServerCommand = `node main.js --resolver ${resolver}`;
+  const startServerCommand = `node app/main.js --resolver ${resolver}`;
   
   exec(startServerCommand, (error, stdout, stderr) => {
     if (error) {
